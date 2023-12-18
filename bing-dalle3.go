@@ -227,7 +227,14 @@ func (bing *BingDalle3) DownloadImage(imageUrl string) (*[]byte, error) {
 	return &content, err
 }
 
-func NewBingDalle3(cookie, proxyUrl string) *BingDalle3 {
+func NewBingDalle3(cookie string) *BingDalle3 {
+	return &BingDalle3{
+		cookie: cookie,
+		tr:     nil,
+	}
+}
+
+func NewBingDalle3WithProxy(cookie, proxyUrl string) *BingDalle3 {
 	proxy, _ := url.Parse(proxyUrl)
 	return &BingDalle3{
 		cookie: cookie,
