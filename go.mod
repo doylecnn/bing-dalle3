@@ -1,4 +1,4 @@
-module github.com/mrchi/bing-dalle3
+module github.com/doylecnn/bing-dalle3
 
 go 1.21.3
 
