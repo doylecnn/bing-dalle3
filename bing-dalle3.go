@@ -1,6 +1,7 @@
 package bingdalle3
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -22,6 +23,7 @@ const (
 
 type BingDalle3 struct {
 	cookie string
+	tr     *http.Transport
 }
 
 func (bing *BingDalle3) genUrlForCreatingImage(prompt string) (string, error) {
@@ -74,7 +76,7 @@ func (bing *BingDalle3) GetTokenBalance() (int, error) {
 	req.Header.Set("Cookie", bing.cookie)
 	req.Header.Set("User-Agent", UserAgent)
 
-	client := http.Client{Timeout: Timeout}
+	client := http.Client{Timeout: Timeout, Transport: bing.tr}
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, err
@@ -119,6 +121,7 @@ func (bing *BingDalle3) CreateImage(prompt string) (string, error) {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
+		Transport: bing.tr,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -167,7 +170,7 @@ func (bing *BingDalle3) QueryResult(id string, prompt string) ([]string, error) 
 	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("Referer", referUrl)
 
-	client := http.Client{Timeout: Timeout}
+	client := http.Client{Timeout: Timeout, Transport: bing.tr}
 
 	timeoutChan := time.After(10 * time.Minute)
 	ticker := time.NewTicker(2 * time.Second)
@@ -210,7 +213,7 @@ func (bing *BingDalle3) DownloadImage(imageUrl string) (*[]byte, error) {
 	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("Referer", PageUrl)
 
-	client := http.Client{Timeout: Timeout}
+	client := http.Client{Timeout: Timeout, Transport: bing.tr}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -224,8 +227,15 @@ func (bing *BingDalle3) DownloadImage(imageUrl string) (*[]byte, error) {
 	return &content, err
 }
 
-func NewBingDalle3(cookie string) *BingDalle3 {
-	return &BingDalle3{cookie: cookie}
+func NewBingDalle3(cookie, proxyUrl string) *BingDalle3 {
+	proxy, _ := url.Parse(proxyUrl)
+	return &BingDalle3{
+		cookie: cookie,
+		tr: &http.Transport{
+			Proxy:           http.ProxyURL(proxy),
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 }
 
 func removeQueryParamsForUrl(fullUrl string) string {
